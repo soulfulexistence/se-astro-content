@@ -1,0 +1,5 @@
+name: se-astro-content
+version: "2.0"
+description: Generates a full Soulful Existence social media content batch from upcoming astrological sky events (14-day window).
+requires_env:
+  - KERYKEION_API_URL

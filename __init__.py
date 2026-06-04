@@ -121,8 +121,8 @@ def fetch_sky_events(start_date, end_date):
     data=payload,
     headers={
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}",
-        "X-API-Key": api_key
+        "x-railway-secret": api_key
+
     },
     method="POST"
 )

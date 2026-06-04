@@ -115,12 +115,17 @@ def fetch_sky_events(start_date, end_date):
         "longitude": 0.0,
         "timezone": 0
     }).encode("utf-8")
+    api_key = os.environ.get("COSMIC_API_KEY", "")
     req = urllib.request.Request(
-        f"{COSMIC_API_URL}/sky-events",
-        data=payload,
-        headers={"Content-Type": "application/json"},
-        method="POST"
-    )
+    f"{COSMIC_API_URL}/sky-events",
+    data=payload,
+    headers={
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}",
+        "X-API-Key": api_key
+    },
+    method="POST"
+)
     with urllib.request.urlopen(req, timeout=30) as resp:
         return json.loads(resp.read().decode("utf-8"))
 

@@ -15,8 +15,8 @@ import urllib.error
 import base64
 from datetime import datetime, timedelta, timezone
 
-COSMIC_API_URL = os.environ.get("KERYKEION_API_URL", "https://cosmic-api-production-d4f6.up.railway.app")
-COSMIC_API_KEY = os.environ.get("COSMIC_API_KEY", "")
+COSMIC_API_URL = os.environ.get("KERYKION_API_URL", "https://cosmic-api-production-d4f6.up.railway.app")
+COSMIC_API_KEY = os.environ.get("KERYKION_API_KEY", "")
 OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 
 # ── Voice ─────────────────────────────────────────────────────────────────────

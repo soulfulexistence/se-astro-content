@@ -1,6 +1,7 @@
 name: se-astro-content
-version: "3.0"
-description: Generates daily and weekly Soulful Existence social media content from upcoming astrological sky events. Includes daily posts at 5am Eastern and weekly batch on Sunday mornings.
+version: "4.0"
+description: Generates daily and weekly Soulful Existence social media content with social-optimized hooks, platform-specific formatting, and AI-generated dark academia images. Daily at 5am Eastern, weekly batch on Sundays.
 requires_env:
   - KERYKEION_API_URL
   - COSMIC_API_KEY
+  - OPENROUTER_API_KEY

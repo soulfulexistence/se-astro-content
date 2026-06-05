@@ -1,5 +1,6 @@
 """
-Soulful Existence Astro Content Plugin v2 for Hermes Agent
+Soulful Existence Astro Content Plugin v3 for Hermes Agent
+Daily post at 5am Eastern + weekly batch on Sundays
 """
 
 import os
@@ -13,101 +14,175 @@ COSMIC_API_URL = os.environ.get(
     "KERYKEION_API_URL",
     "https://cosmic-api-production-d4f6.up.railway.app"
 )
+COSMIC_API_KEY = os.environ.get("COSMIC_API_KEY", "")
 
-SE_BRAND_PROMPT = """You are a content writer for Soulful Existence, the personal brand of Gen Rodriguez — a tarot reader, medium, and past life regression practitioner offering virtual sessions worldwide.
+# ── Voice prompt ─────────────────────────────────────────────────────────────
 
-BRAND OVERVIEW
-Soulful Existence helps people reconnect with their own intuition during moments of change and transition. Services: tarot readings, mediumship sessions, past life regression (guided hypnosis). Ancient, grounded wisdom — like knowledge passed down through generations.
+SE_VOICE = """You are writing social media content for Gen Rodriguez of Soulful Existence.
+Gen is a tarot reader, medium, and past life regression practitioner.
 
-VOICE AND TONE
-- Warm, grounded, conversational — like a wise friend who knows your soul
-- Spiritually fluent without being preachy or performatively woo
-- Honest about difficult transits — no toxic positivity
-- Trusts the audience's intelligence
-- No dependency language — empowers, does not create reliance
-- Never use: the universe whispers, high vibe, manifest your dreams, cosmic downloads
-- Understated, confident, real — talks TO people not AT them
+WRITE EXACTLY LIKE THIS:
 
-THREE AUDIENCE LAYERS (weave all three into every piece of content):
-1. NEWCOMERS — explain what the transit/placement is in plain language, no jargon without definition
-2. INTERMEDIATE — practical how-to-use-this-energy guidance, what actions or inner work fit this moment
-3. PERSONAL — speak directly to the reader using you and your, make them feel seen
+Gen writes like she is talking to someone she knows. Not a stranger, not a client, not a follower. Someone she would actually text.
 
-ASTROLOGY AS DOORWAY
-Use sky events as context and doorway into inner work — not as the main offering.
-Connect transits to themes of intuition, transition, and self-knowledge.
-Mercury retrograde is not survive this rx — it is here is what this stirs up and here is how going inward helps.
+HOW SHE WRITES:
+- Short sentences that land. She does not over-explain.
+- She defines astrology terms once, plainly, then moves on. No repeating, no hand-holding.
+- She connects astrology to what is actually happening in the world, in relationships, in the body, in real decisions people are making.
+- She makes it personal without oversharing. One real detail that grounds it. Then she moves on.
+- Her dry wit shows up occasionally but never tries too hard.
+- She ends posts with either a direct question or a short punchy line that lands the whole thing. Never a motivational sign-off.
+- She trusts her audience to keep up.
 
-SERVICES (one CTA max per post, used sparingly):
-Tarot readings, Mediumship, Past Life Regression, Digital products
+SENTENCE PATTERNS TO USE:
+- "Mercury is definitely retrograding." — state the fact, no fanfare
+- "There is a reason they are not in my life anymore." — real, dry, moves on
+- "I love when astrology makes sense." — short landing line
+- "Jupiter brings luck, growth, optimism, and achievement." — clean list, no elaboration needed
+- "This is all right on time." — connects sky to world without over-explaining
 
-NEVER:
-- Fear-based transit content
-- Overpromising
-- Generic astrology with no SE fingerprint
-- Excessive emojis or hashtag walls
-- Sun-sign-only surface content"""
+WHAT SHE DOES NOT DO:
+- Does not say "the cosmos are inviting you to..."
+- Does not use "energy" as a filler word every other sentence
+- Does not write in a whisper or be mysterious about it
+- Does not over-qualify — not "this might possibly feel like..." — just say what it is
+- Does not hype — no exclamation points unless something is actually surprising
+- Does not write fake urgency — no "now is the time to..."
+- Does not add a motivational quote at the end
+- Does not use dashes as bullet points
+- Does not use the word "energy" more than once per post
+
+TONE REFERENCE — actual Gen posts, write like this:
+
+"Mercury is definitely retrograding. I have had a few old so-called friends follow me on here and TikTok in the last week or so. There is a reason they are not in my life anymore, but apparently they are curious. Mercury is in retrograde until August 23rd. It is known for bringing misunderstandings, miscommunication, technology problems, and people from your past. We are meant to reflect, review, choose new paths when it comes to old lessons, and pause before major decisions."
+
+"Both of my bio granddaughters will have significant Leo placements in their birth charts. My North Node is Leo. The North Node is a placement that is known for being what we are working towards in this lifetime. I have a feeling my granddaughters are here to teach me. Probably how to be comfortable in the spotlight or in a leadership position. I love when astrology makes sense."
+
+"In astrology a Conjunction is when there are 0 degrees of separation between two planets. The energy of a conjunction is harmonic, blending the energy of both planets together. Working together and pulling the best of both planets is like rocket fuel for any projects, plans, growth, and achievements you have been working on."
+
+PARAGRAPH STRUCTURE FOR EVERY POST:
+Para 1 — What is happening. State it plainly. Define any term that needs defining. One or two sentences max per idea.
+Para 2 — Why it matters. What does this actually do or stir up. Connect it to something real — a feeling, a pattern, something people are navigating right now.
+Para 3 — Make it personal. One real detail or observation that grounds it. Speak directly to the reader.
+Para 4 — Optional. A question or a short landing line. Only if it adds something.
+
+SERVICES (mention sparingly, one CTA max, only when it fits naturally):
+Tarot readings, Mediumship sessions, Past Life Regression, Digital products at soulfulexistence.com"""
+
+# ── Daily post prompt ────────────────────────────────────────────────────────
+
+DAILY_POST_PROMPT = """Today is {today}.
+
+Here are the astrological sky events for the next 14 days:
+{sky_events}
+
+PRIORITY ORDER for choosing what to write about:
+1. If there is a major event TODAY or TOMORROW (ingress of a personal planet, lunation, exact aspect between outer planets, retrograde station, cazimi, eclipse) — write about that.
+2. If there is a major event in the next 3-5 days — write about it as upcoming, give people time to prepare.
+3. If nothing major — write useful, grounded, educational astrology content. Ideas: how to read your chart, what a specific placement means, how retrogrades actually work, what the nodes represent, how to use astrology practically day to day.
+
+CRITICAL: Use ONLY events that appear in the sky events data above. Do not invent transits.
+
+Generate a daily post in this JSON format. Return ONLY valid JSON, no preamble or markdown:
+
+{{
+  "post_type": "major_event or upcoming_event or educational",
+  "subject": "One line describing what the post is about",
+  "instagram": {{
+    "caption": "Full Instagram caption. 3-4 paragraphs in Gen voice. No hashtags in the caption itself.",
+    "hashtags": ["8-10 relevant hashtags"]
+  }},
+  "tiktok": {{
+    "hook": "One punchy opening line. Under 10 words. Makes people stop scrolling.",
+    "script": "45-60 second spoken script. Written how Gen actually talks. Natural pauses with ellipses. No stage directions."
+  }},
+  "facebook": {{
+    "post": "Slightly longer version of the Instagram caption. More conversational. Ends with a question that invites real responses."
+  }},
+  "story": {{
+    "text": "One line. Max 10 words. For graphic overlay.",
+    "visual_note": "Brief note on what kind of visual would work"
+  }}
+}}"""
+
+# ── Weekly batch prompt ──────────────────────────────────────────────────────
+
+WEEKLY_BATCH_PROMPT = """Today is {today} (Sunday). This is the weekly content batch.
+
+Here are the astrological sky events for the next 14 days:
+{sky_events}
+
+SIGN TIP THIS WEEK: {sign_placement} in {sign}
+
+CRITICAL: Use ONLY events that appear in the sky events data above. Do not invent transits.
+
+Generate a full weekly content batch. Return ONLY valid JSON, no preamble or markdown:
+
+{{
+  "weekly_overview": {{
+    "instagram": {{
+      "caption": "Monday overview post. 3-4 paragraphs. What is the collective weather this week. Name the key events, what they mean, what people might feel or notice. Gen voice throughout.",
+      "hashtags": ["8-10 hashtags"]
+    }},
+    "facebook": {{
+      "post": "Longer version. More personal. Ends with engagement question."
+    }}
+  }},
+  "transit_spotlight": {{
+    "subject": "The single most significant transit this week",
+    "date": "When it happens",
+    "instagram": {{
+      "caption": "Deep dive on this one transit. 3-4 paragraphs. Plain explanation, why it matters, personal connection, landing line or question.",
+      "hashtags": ["8-10 hashtags"]
+    }},
+    "tiktok": {{
+      "hook": "One punchy opening line under 10 words",
+      "script": "45-60 second spoken script in Gen voice"
+    }},
+    "facebook": {{
+      "post": "Conversational version with engagement question"
+    }},
+    "story": {{
+      "text": "One line max 10 words",
+      "visual_note": "Visual direction"
+    }}
+  }},
+  "sign_tip": {{
+    "placement": "{sign_placement}",
+    "sign": "{sign}",
+    "instagram": {{
+      "caption": "3 paragraphs about this placement. Practical and specific. Connects to current sky. Speaks directly to people with this placement.",
+      "hashtags": ["6-8 hashtags"]
+    }},
+    "story": {{
+      "text": "One punchy line for this placement, max 10 words"
+    }}
+  }},
+  "journal_prompt": {{
+    "transit_connection": "Which event this connects to",
+    "instagram": {{
+      "caption": "3 paragraphs. A real reflective question tied to the sky. Context, the question itself, why it matters right now. Not therapy-speak.",
+      "hashtags": ["6-8 hashtags"]
+    }},
+    "story": {{
+      "text": "The question distilled to one line"
+    }}
+  }},
+  "tarot_tie": {{
+    "instagram": {{
+      "caption": "3 paragraphs connecting current sky to tarot. Which card fits and why. What it is asking right now. Natural connection to a reading without being salesy.",
+      "hashtags": ["6-8 hashtags"]
+    }}
+  }}
+}}"""
+
+# ── Sign rotation ────────────────────────────────────────────────────────────
 
 SIGN_PLACEMENTS = ["sun", "moon", "rising", "venus"]
 SIGNS = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
          "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]
 
-CONTENT_PROMPT = """Based on the following upcoming astrological sky events for the next 14 days, create a full Soulful Existence content batch.
-
-UPCOMING SKY EVENTS (USE ONLY THESE — DO NOT ADD ANY OTHER TRANSITS):
-{sky_events}
-
-CRITICAL RULE: Every transit, aspect, moon phase, and planetary movement you reference in the content MUST appear in the list above. Do not add Mars transits, aspects, eclipses, retrogrades, or any other astrological event that is not explicitly listed in the data above. If it is not in the data, it did not happen. Stick strictly to what is provided.
-
-TODAY: {today}
-DATE RANGE: {start_date} to {end_date}
-SIGN TIP FOCUS: {sign_placement} in {sign}
-
-Return ONLY valid JSON with no preamble or markdown fences:
-
-{{
-  "weekly_energy": {{
-    "instagram_caption": "Monday energy overview. Hook + collective theme for the week + practical meaning + engagement question. All 3 audience layers.",
-    "hashtags": ["8-10 relevant hashtags no spaces"]
-  }},
-  "transit_spotlight": {{
-    "planet": "Most significant upcoming transit planet",
-    "aspect_or_event": "What it is doing",
-    "date": "When it perfects",
-    "instagram_caption": "Deep dive on this transit. Plain explanation (newcomers) + how to work with it (intermediate) + speaks directly to reader (personal). SE voice.",
-    "tiktok_hook": "3-second punchy opening line",
-    "tiktok_script": "45-60 second spoken script, conversational, pauses noted with ellipses",
-    "facebook_post": "Longer conversational version with engagement question at end",
-    "story_prompt": "One punchy line for graphic overlay max 12 words",
-    "story_visual_direction": "Brief note on visual direction for the graphic",
-    "hashtags": ["8-10 relevant hashtags"]
-  }},
-  "sign_tip": {{
-    "placement": "{sign_placement}",
-    "sign": "{sign}",
-    "instagram_caption": "Tip for people with this placement. Practical, warm, specific. Connects to current sky energy. Speaks directly to them.",
-    "story_prompt": "One punchy line for this placement max 10 words",
-    "hashtags": ["6-8 relevant hashtags"]
-  }},
-  "journal_prompt": {{
-    "transit_tie": "Which transit this connects to",
-    "instagram_caption": "Reflective journal prompt tied to current sky energy. One powerful question + brief context + invitation. Real, not therapy-speak.",
-    "story_prompt": "Journal question distilled to one line for story graphic",
-    "hashtags": ["6-8 relevant hashtags"]
-  }},
-  "tarot_transit_tie": {{
-    "instagram_caption": "Post connecting current sky energy to tarot. Which cards resonate and why. Practical — what the card is asking you to consider right now. Natural bridge to booking.",
-    "hashtags": ["6-8 relevant hashtags"]
-  }},
-  "retrograde_or_ingress_alert": {{
-    "applicable": true,
-    "planet": "Planet involved or null if none",
-    "type": "retrograde or ingress or major_aspect or null",
-    "instagram_caption": "Practical navigation guide for this event if applicable, otherwise null",
-    "hashtags": ["6-8 relevant hashtags or empty list if not applicable"]
-  }}
-}}"""
-
+# ── API ──────────────────────────────────────────────────────────────────────
 
 def fetch_sky_events(start_date, end_date):
     payload = json.dumps({
@@ -117,110 +192,174 @@ def fetch_sky_events(start_date, end_date):
         "longitude": 0.0,
         "timezone": 0
     }).encode("utf-8")
-    api_key = os.environ.get("COSMIC_API_KEY", "")
     req = urllib.request.Request(
-    f"{COSMIC_API_URL}/sky-events",
-    data=payload,
-    headers={
-        "Content-Type": "application/json",
-        "x-railway-secret": api_key
-
-    },
-    method="POST"
-)
+        f"{COSMIC_API_URL}/sky-events",
+        data=payload,
+        headers={
+            "Content-Type": "application/json",
+            "x-railway-secret": COSMIC_API_KEY
+        },
+        method="POST"
+    )
     with urllib.request.urlopen(req, timeout=30) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
+# ── Formatters ───────────────────────────────────────────────────────────────
 
 def hashtag_str(tags):
     if not tags:
         return ""
-    return " ".join([f"#{t.lstrip('#').replace(' ','')}" for t in tags if t])
+    return " ".join([f"#{t.lstrip('#').replace(' ', '')}" for t in tags if t])
 
+def parse_json(raw):
+    clean = raw.strip()
+    if clean.startswith("```"):
+        clean = clean.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+    return json.loads(clean)
 
-def format_output(raw_json, sign_placement, sign, today_str, start_date, end_date):
-    try:
-        clean = raw_json.strip()
-        if clean.startswith("```"):
-            clean = clean.split("\n", 1)[1].rsplit("```", 1)[0].strip()
-        d = json.loads(clean)
+def format_daily(data, today_str):
+    ig = data.get("instagram", {})
+    tk = data.get("tiktok", {})
+    fb = data.get("facebook", {})
+    st = data.get("story", {})
 
-        we = d.get("weekly_energy", {})
-        ts = d.get("transit_spotlight", {})
-        st = d.get("sign_tip", {})
-        jp = d.get("journal_prompt", {})
-        tt = d.get("tarot_transit_tie", {})
-        ra = d.get("retrograde_or_ingress_alert", {})
-
-        out = f"""SOULFUL EXISTENCE ASTRO CONTENT BATCH v2
-Generated: {today_str} | Covers: {start_date} to {end_date}
+    return f"""SOULFUL EXISTENCE — DAILY POST
+{today_str} | {data.get("subject", "")}
 
 ==================================================
-WEEKLY ENERGY — INSTAGRAM
+INSTAGRAM
 ==================================================
-{we.get("instagram_caption", "")}
+{ig.get("caption", "")}
 
-{hashtag_str(we.get("hashtags", []))}
+{hashtag_str(ig.get("hashtags", []))}
 
 ==================================================
-TRANSIT SPOTLIGHT: {ts.get("planet", "")} — {ts.get("aspect_or_event", "")} ({ts.get("date", "")})
+TIKTOK
 ==================================================
+Hook: {tk.get("hook", "")}
 
+Script:
+{tk.get("script", "")}
+
+==================================================
+FACEBOOK
+==================================================
+{fb.get("post", "")}
+
+==================================================
+STORY
+==================================================
+"{st.get("text", "")}"
+Visual: {st.get("visual_note", "")}"""
+
+def format_weekly(data, today_str, sign_placement, sign):
+    wo = data.get("weekly_overview", {})
+    ts = data.get("transit_spotlight", {})
+    st = data.get("sign_tip", {})
+    jp = data.get("journal_prompt", {})
+    tt = data.get("tarot_tie", {})
+
+    wo_ig = wo.get("instagram", {})
+    wo_fb = wo.get("facebook", {})
+    ts_ig = ts.get("instagram", {})
+    ts_tk = ts.get("tiktok", {})
+    ts_fb = ts.get("facebook", {})
+    ts_st = ts.get("story", {})
+    st_ig = st.get("instagram", {})
+    st_st = st.get("story", {})
+    jp_ig = jp.get("instagram", {})
+    jp_st = jp.get("story", {})
+    tt_ig = tt.get("instagram", {})
+
+    return f"""SOULFUL EXISTENCE — WEEKLY BATCH
+Generated: {today_str}
+
+==================================================
+WEEKLY OVERVIEW — INSTAGRAM
+==================================================
+{wo_ig.get("caption", "")}
+
+{hashtag_str(wo_ig.get("hashtags", []))}
+
+WEEKLY OVERVIEW — FACEBOOK
+{wo_fb.get("post", "")}
+
+==================================================
+TRANSIT SPOTLIGHT: {ts.get("subject", "")} ({ts.get("date", "")})
+==================================================
 INSTAGRAM:
-{ts.get("instagram_caption", "")}
-{hashtag_str(ts.get("hashtags", []))}
+{ts_ig.get("caption", "")}
+{hashtag_str(ts_ig.get("hashtags", []))}
 
-TIKTOK HOOK: {ts.get("tiktok_hook", "")}
-
-TIKTOK SCRIPT:
-{ts.get("tiktok_script", "")}
+TIKTOK:
+Hook: {ts_tk.get("hook", "")}
+Script: {ts_tk.get("script", "")}
 
 FACEBOOK:
-{ts.get("facebook_post", "")}
+{ts_fb.get("post", "")}
 
-STORY: "{ts.get("story_prompt", "")}"
-VISUAL DIRECTION: {ts.get("story_visual_direction", "")}
+STORY: "{ts_st.get("text", "")}"
+Visual: {ts_st.get("visual_note", "")}
 
 ==================================================
 SIGN TIP: {sign_placement.upper()} IN {sign.upper()}
 ==================================================
 INSTAGRAM:
-{st.get("instagram_caption", "")}
-{hashtag_str(st.get("hashtags", []))}
+{st_ig.get("caption", "")}
+{hashtag_str(st_ig.get("hashtags", []))}
 
-STORY: "{st.get("story_prompt", "")}"
+STORY: "{st_st.get("text", "")}"
 
 ==================================================
-JOURNAL PROMPT (transit: {jp.get("transit_tie", "")})
+JOURNAL PROMPT (re: {jp.get("transit_connection", "")})
 ==================================================
 INSTAGRAM:
-{jp.get("instagram_caption", "")}
-{hashtag_str(jp.get("hashtags", []))}
+{jp_ig.get("caption", "")}
+{hashtag_str(jp_ig.get("hashtags", []))}
 
-STORY: "{jp.get("story_prompt", "")}"
-
-==================================================
-TAROT + TRANSIT TIE-IN
-==================================================
-{tt.get("instagram_caption", "")}
-{hashtag_str(tt.get("hashtags", []))}"""
-
-        if ra.get("applicable") and ra.get("instagram_caption"):
-            out += f"""
+STORY: "{jp_st.get("text", "")}"
 
 ==================================================
-{ra.get("type", "ALERT").upper().replace("_", " ")}: {ra.get("planet", "")}
+TAROT TIE-IN
 ==================================================
-{ra.get("instagram_caption", "")}
-{hashtag_str(ra.get("hashtags", []))}"""
+{tt_ig.get("caption", "")}
+{hashtag_str(tt_ig.get("hashtags", []))}"""
 
-        return out
+# ── Handlers ─────────────────────────────────────────────────────────────────
 
+def handle_daily(params, ctx=None, **kwargs):
+    try:
+        today = datetime.now(timezone.utc)
+        start_date = today.strftime("%Y-%m-%d")
+        end_date = (today + timedelta(days=14)).strftime("%Y-%m-%d")
+        today_str = today.strftime("%B %d, %Y")
+
+        sky_events = fetch_sky_events(start_date, end_date)
+
+        user_prompt = DAILY_POST_PROMPT.format(
+            today=today_str,
+            sky_events=json.dumps(sky_events.get("events", sky_events), indent=2)
+        )
+
+        if ctx and hasattr(ctx, "llm"):
+            result = ctx.llm.complete(
+                system=SE_VOICE,
+                messages=[{"role": "user", "content": user_prompt}]
+            )
+            raw = result.content if hasattr(result, "content") else str(result)
+        else:
+            return "LLM context unavailable."
+
+        data = parse_json(raw)
+        return format_daily(data, today_str)
+
+    except urllib.error.URLError as e:
+        return f"Could not reach the Cosmic API: {e}"
     except Exception as e:
-        return f"Formatting failed: {e}\n\nRaw output:\n{raw_json}"
+        return f"Something went wrong: {e}"
 
 
-def handle(params, ctx=None, **kwargs):
+def handle_weekly(params, ctx=None, **kwargs):
     try:
         today = datetime.now(timezone.utc)
         start_date = today.strftime("%Y-%m-%d")
@@ -232,25 +371,24 @@ def handle(params, ctx=None, **kwargs):
 
         sky_events = fetch_sky_events(start_date, end_date)
 
-        user_prompt = CONTENT_PROMPT.format(
-            sky_events=json.dumps(sky_events, indent=2),
+        user_prompt = WEEKLY_BATCH_PROMPT.format(
             today=today_str,
-            start_date=start_date,
-            end_date=end_date,
+            sky_events=json.dumps(sky_events.get("events", sky_events), indent=2),
             sign_placement=sign_placement,
             sign=sign
         )
 
         if ctx and hasattr(ctx, "llm"):
             result = ctx.llm.complete(
-                system=SE_BRAND_PROMPT,
+                system=SE_VOICE,
                 messages=[{"role": "user", "content": user_prompt}]
             )
             raw = result.content if hasattr(result, "content") else str(result)
         else:
-            return "Plugin loaded but LLM context not available."
+            return "LLM context unavailable."
 
-        return format_output(raw, sign_placement, sign, today_str, start_date, end_date)
+        data = parse_json(raw)
+        return format_weekly(data, today_str, sign_placement, sign)
 
     except urllib.error.URLError as e:
         return f"Could not reach the Cosmic API: {e}"
@@ -258,28 +396,50 @@ def handle(params, ctx=None, **kwargs):
         return f"Something went wrong: {e}"
 
 
+# ── Registration ─────────────────────────────────────────────────────────────
+
 def register(ctx):
-    schema = {
-        "name": "astro_content_se",
-        "description": (
-            "Generate a full Soulful Existence social media content batch based on "
-            "upcoming astrological sky events over the next 14 days. Produces: "
-            "weekly energy overview, transit spotlight with Instagram/TikTok/Facebook/Story formats, "
-            "randomly rotated sign placement tip (sun/moon/rising/venus), "
-            "journal prompt, tarot-transit tie-in, and retrograde or ingress alert if applicable. "
-            "All content is warm, grounded, informative for newcomers, practical for intermediate, "
-            "and personal for all readers."
-        ),
-        "parameters": {
-            "type": "object",
-            "properties": {},
-            "required": []
-        }
-    }
+    # Daily post tool
     ctx.register_tool(
-        name="astro_content_se",
-        toolset="astro_content_se",
-        schema=schema,
-        handler=handle,
-        description="Generate full SE astro content batch for the next 14 days."
+        name="se_daily_post",
+        toolset="se_astro_content",
+        schema={
+            "name": "se_daily_post",
+            "description": "Generate today's Soulful Existence daily astrology post. Checks sky events and writes about the most relevant event — major transit, upcoming event, or educational content. Returns Instagram, TikTok, Facebook, and Story formats.",
+            "parameters": {"type": "object", "properties": {}, "required": []}
+        },
+        handler=handle_daily,
+        description="Generate SE daily astrology post."
     )
+
+    # Weekly batch tool
+    ctx.register_tool(
+        name="se_weekly_batch",
+        toolset="se_astro_content",
+        schema={
+            "name": "se_weekly_batch",
+            "description": "Generate the full Soulful Existence weekly content batch for Sunday scheduling. Returns weekly overview, transit spotlight, sign tip, journal prompt, and tarot tie-in across all platforms.",
+            "parameters": {"type": "object", "properties": {}, "required": []}
+        },
+        handler=handle_weekly,
+        description="Generate SE weekly content batch."
+    )
+
+    # Schedule daily post at 5am Eastern (9am UTC, 10am UTC during EDT)
+    if hasattr(ctx, "schedule"):
+        ctx.schedule(
+            name="se_daily_astro",
+            cron="0 9 * * *",
+            tool="se_daily_post",
+            params={},
+            message="[SILENT] Run se_daily_post and send the full output to this chat."
+        )
+
+        # Weekly batch every Sunday at 6am Eastern (10am UTC)
+        ctx.schedule(
+            name="se_weekly_astro",
+            cron="0 10 * * 0",
+            tool="se_weekly_batch",
+            params={},
+            message="[SILENT] Run se_weekly_batch and send the full output to this chat."
+        )

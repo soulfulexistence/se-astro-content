@@ -54,8 +54,10 @@ SIGNS = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
 
 CONTENT_PROMPT = """Based on the following upcoming astrological sky events for the next 14 days, create a full Soulful Existence content batch.
 
-UPCOMING SKY EVENTS:
+UPCOMING SKY EVENTS (USE ONLY THESE — DO NOT ADD ANY OTHER TRANSITS):
 {sky_events}
+
+CRITICAL RULE: Every transit, aspect, moon phase, and planetary movement you reference in the content MUST appear in the list above. Do not add Mars transits, aspects, eclipses, retrogrades, or any other astrological event that is not explicitly listed in the data above. If it is not in the data, it did not happen. Stick strictly to what is provided.
 
 TODAY: {today}
 DATE RANGE: {start_date} to {end_date}

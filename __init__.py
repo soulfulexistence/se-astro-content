@@ -1,9 +1,9 @@
 """
-Soulful Existence Astro Content Plugin v4
-- Social media optimized hooks (115 hooks, 8 categories)
-- Platform-specific formatting for IG, TikTok, FB, Story
-- Tiered hashtag strategy (broad/mid/niche)
-- AI image generation via OpenRouter (dark academia aesthetic)
+Soulful Existence Astro Content Plugin v5
+- Branded Pillow graphics (no AI image gen)
+- 115 social-optimized hooks across 8 categories
+- Platform-specific formatting
+- Tiered hashtag strategy
 - Daily 5am Eastern + Sunday weekly batch
 """
 
@@ -13,11 +13,63 @@ import random
 import urllib.request
 import urllib.error
 import base64
+import subprocess
+import sys
 from datetime import datetime, timedelta, timezone
+from io import BytesIO
 
 COSMIC_API_URL = os.environ.get("KERYKION_API_URL", "https://cosmic-api-production-d4f6.up.railway.app")
 COSMIC_API_KEY = os.environ.get("KERYKION_API_KEY", "")
 OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY", "")
+
+PLUGIN_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def ensure_pillow():
+    try:
+        from PIL import Image
+        return True
+    except ImportError:
+        subprocess.run([sys.executable, "-m", "pip", "install", "pillow", "--break-system-packages", "-q"])
+        try:
+            from PIL import Image
+            return True
+        except ImportError:
+            return False
+
+def ensure_fonts():
+    font_dir = "/data/.hermes/fonts"
+    os.makedirs(font_dir, exist_ok=True)
+    fonts = {
+        "CormorantGaramond-LightItalic.ttf": "https://raw.githubusercontent.com/google/fonts/main/ofl/cormorantgaramond/CormorantGaramond-LightItalic.ttf",
+        "CormorantGaramond-Light.ttf": "https://raw.githubusercontent.com/google/fonts/main/ofl/cormorantgaramond/CormorantGaramond-Light.ttf",
+    }
+    for name, url in fonts.items():
+        path = os.path.join(font_dir, name)
+        if not os.path.exists(path) or os.path.getsize(path) < 1000:
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(req, timeout=15) as resp:
+                    with open(path, "wb") as f:
+                        f.write(resp.read())
+            except Exception:
+                pass
+
+def generate_graphic(event_name, pull_quote, post_date, handle="@soulfulxistence"):
+    if not ensure_pillow():
+        return None
+    ensure_fonts()
+    try:
+        graphic_path = os.path.join(PLUGIN_DIR, "se_graphic.py")
+        if not os.path.exists(graphic_path):
+            return None
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("se_graphic", graphic_path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        b64 = mod.draw_se_graphic(event_name, pull_quote, post_date, handle)
+        return b64
+    except Exception as e:
+        return None
 
 # ── Voice ─────────────────────────────────────────────────────────────────────
 
@@ -30,17 +82,11 @@ Gen writes like she is talking to someone she knows. Not a stranger, not a clien
 HOW SHE WRITES:
 - Short sentences that land. She does not over-explain.
 - She defines astrology terms once, plainly, then moves on.
-- She connects astrology to what is actually happening in real life — relationships, decisions, patterns people are navigating.
+- She connects astrology to what is actually happening in real life.
 - She makes it personal without oversharing. One real detail. Then moves on.
 - Dry wit shows up occasionally but never tries too hard.
 - She ends posts with a direct question or a short punchy line. Never a motivational sign-off.
 - She trusts her audience to keep up.
-
-SENTENCE PATTERNS:
-- "Mercury is definitely retrograding." — state the fact, no fanfare
-- "I love when astrology makes sense." — short landing line
-- "Jupiter brings luck, growth, optimism, and achievement." — clean list, done
-- "This is all right on time." — connects sky to real world simply
 
 NEVER:
 - "The cosmos are inviting you to..."
@@ -56,7 +102,12 @@ Para 2 — Why it matters. Real life connection.
 Para 3 — Speak directly to the reader. Personal and grounding.
 Para 4 — Optional. Question or landing line only if it adds something.
 
-SERVICES (one CTA max, used sparingly, only when it fits):
+TONE REFERENCE:
+"Mercury is definitely retrograding. I have had a few old so-called friends follow me on here in the last week or so. There is a reason they are not in my life anymore, but apparently they are curious."
+"I love when astrology makes sense."
+"The sky gives you the weather. Your birth chart tells you what to wear."
+
+SERVICES (one CTA max, used sparingly):
 Tarot readings, Mediumship, Past Life Regression, Digital products at soulfulexistence.com"""
 
 # ── Hooks ─────────────────────────────────────────────────────────────────────
@@ -71,7 +122,7 @@ HOOKS = {
         "The sky is doing something interesting right now and it explains a lot.",
         "If you have been feeling {feeling} lately, there is a reason for that.",
         "{Transit} does not announce itself. It just starts working.",
-        "We are in {transit} territory right now. Let me explain what that actually means.",
+        "We are in {transit} territory right now.",
         "This is what {transit} is asking you to look at.",
         "Not every astrologer will tell you this about {transit}.",
         "{Planet} just moved into {sign}. Here is what changes.",
@@ -90,7 +141,7 @@ HOOKS = {
         "I pulled the {card} this morning. Here is what I think it means for the collective.",
         "The tarot card that describes this week is {card} and here is why.",
         "This is what the {card} actually means — not the watered down version.",
-        "Three cards that keep coming up in readings this month and what they have in common.",
+        "Three cards that keep coming up in readings this month.",
         "The {card} is one of the most misunderstood cards in the deck.",
         "Your card for this week is {card}. Here is what it is asking.",
         "I have been reading tarot for years and the {card} still stops me every time.",
@@ -170,36 +221,34 @@ HOOKS = {
         "Hot take: knowing your sun sign is the least interesting thing about your chart.",
         "If astrology feels like it does not apply to you, you are probably looking at the wrong thing.",
         "The astrology content you are seeing online is missing something important.",
-        "I will say what most astrologers will not say about {transit}.",
+        "I will say what most astrologers will not say about this transit.",
         "Astrology is not a personality test. Here is what it actually is.",
-        "If someone told you {placement} is bad, they were wrong.",
+        "If someone told you that placement is bad, they were wrong.",
         "The problem with how most people use tarot.",
         "Most astrology content treats you like you cannot handle complexity. I do not.",
-        "The thing about {transit} that fear-based astrology content always gets wrong.",
+        "The thing about this transit that fear-based astrology content always gets wrong.",
         "I do not do doom and gloom astrology and here is why.",
         "Not all astrology advice ages well. Here is what I actually stand behind.",
-        "The version of {concept} you have been taught is incomplete.",
+        "The version of astrology you have been taught is incomplete.",
         "Why I stopped reading astrology the way I was taught."
     ],
     "engagement": [
         "Do you relate more to your sun sign or your moon sign?",
         "What placement in your chart have you struggled to understand?",
         "Has a tarot reading ever told you something you already knew but needed to hear?",
-        "What does {transit} have you thinking about right now?",
-        "Which {sign} energy do you have the hardest time with?",
+        "Which sign energy do you have the hardest time with?",
         "What is the one thing about your birth chart that makes complete sense to you?",
         "Has astrology ever explained something about yourself that nothing else could?",
         "What would you want to know if you could ask your chart one question?",
         "What does home mean to you right now?",
-        "If your chart could tell you one thing you needed to hear today, what would it say?"
+        "If your chart could tell you one thing you needed to hear today, what would it say?",
+        "When did astrology start making sense for you?"
     ]
 }
 
-# ── Hashtag tiers ─────────────────────────────────────────────────────────────
-
 HASHTAG_TIERS = {
-    "broad": ["#astrology", "#tarot", "#spirituality", "#zodiac", "#intuition", "#manifestation", "#selfgrowth", "#mindfulness"],
-    "mid_astro": ["#astrologytok", "#astrologer", "#birthchart", "#moonphase", "#mercuryretrograde", "#fullmoon", "#newmoon", "#venusintransit"],
+    "broad": ["#astrology", "#tarot", "#spirituality", "#zodiac", "#intuition", "#selfgrowth", "#mindfulness", "#spiritual"],
+    "mid_astro": ["#astrologytok", "#astrologer", "#birthchart", "#moonphase", "#mercuryretrograde", "#fullmoon", "#newmoon", "#astrologycommunity"],
     "mid_tarot": ["#tarotreader", "#tarotcommunity", "#tarotreading", "#dailytarot", "#tarotcards", "#oraclecards"],
     "mid_spiritual": ["#psychic", "#medium", "#pastliferegression", "#spiritualawakening", "#higherself", "#energyhealing"],
     "niche": ["#soulfulexistence", "#genrodriguez", "#tarotreaderforwomen", "#astrologyforyou", "#spiritualbutnotweird", "#midlifespiritual"]
@@ -214,65 +263,21 @@ def get_hashtags(content_type="astro"):
         mid = random.sample(HASHTAG_TIERS["mid_spiritual"], 3)
     else:
         mid = random.sample(HASHTAG_TIERS["mid_astro"], 3)
-    return broad + mid + niche
+    return " ".join([f"#{t.lstrip('#')}" for t in broad + mid + niche])
 
 def get_hook(category=None):
     if not category:
         category = random.choice(list(HOOKS.keys()))
-    hooks = HOOKS.get(category, HOOKS["transit_and_sky"])
-    return random.choice(hooks)
+    return random.choice(HOOKS.get(category, HOOKS["transit_and_sky"]))
 
-# ── Image generation ──────────────────────────────────────────────────────────
-
-def generate_image(subject, event_name, quote):
-    """Generate a dark academia / cottage witch social media image via OpenRouter."""
-    if not OPENROUTER_KEY:
-        return None
-
-    prompt = f"""Dark academia cottage witch aesthetic. Secret library in a secret garden at night.
-Deep navy and forest green tones, candlelight, aged books, botanical elements, moonlight through windows.
-Mysterious and atmospheric. No people. No faces.
-Central theme: {subject}
-Mood: {event_name}
-Style: editorial, ethereal, slightly gothic, rich textures, cinematic lighting.
-Text overlay space at bottom for handle @soulfulxistence.
-Square format 1:1. High quality, detailed."""
-
-    payload = json.dumps({
-        "model": "openai/gpt-5.4-image-2",
-        "messages": [{"role": "user", "content": prompt}],
-        "modalities": ["image"]
-    }).encode("utf-8")
-
-    req = urllib.request.Request(
-        "https://openrouter.ai/api/v1/chat/completions",
-        data=payload,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {OPENROUTER_KEY}"
-        },
-        method="POST"
-    )
-
-    try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            images = data.get("choices", [{}])[0].get("message", {}).get("images", [])
-            if images:
-                return images[0].get("url") or images[0].get("data")
-    except Exception as e:
-        return f"[Image generation failed: {e}]"
-    return None
-
-# ── API ───────────────────────────────────────────────────────────────────────
+SIGN_PLACEMENTS = ["sun", "moon", "rising", "venus"]
+SIGNS = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+         "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]
 
 def fetch_sky_events(start_date, end_date):
     payload = json.dumps({
-        "start_date": start_date,
-        "end_date": end_date,
-        "latitude": 0.0,
-        "longitude": 0.0,
-        "timezone": 0
+        "start_date": start_date, "end_date": end_date,
+        "latitude": 0.0, "longitude": 0.0, "timezone": 0
     }).encode("utf-8")
     req = urllib.request.Request(
         f"{COSMIC_API_URL}/sky-events",
@@ -283,138 +288,19 @@ def fetch_sky_events(start_date, end_date):
     with urllib.request.urlopen(req, timeout=30) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
-# ── Prompts ───────────────────────────────────────────────────────────────────
-
-DAILY_PROMPT = """Today is {today}.
-
-SKY EVENTS (next 14 days — use ONLY these, do not invent transits):
-{sky_events}
-
-HOOK TO USE (first line of every platform):
-{hook}
-
-PRIORITY: Write about the most significant event today or in the next 3 days.
-If nothing major, write educational/evergreen content about astrology, tarot, or intuition.
-
-Generate a daily post. Return ONLY valid JSON, no preamble or markdown fences:
-
-{{
-  "post_type": "major_event or upcoming_event or educational",
-  "subject": "One line — what this post is about",
-  "event_name": "The astrological event name for the image (e.g. Venus in Leo, New Moon in Gemini)",
-  "pull_quote": "The single most shareable line from the post — max 12 words",
-  "instagram": {{
-    "caption": "Hook line from above + 3-4 paragraphs in Gen voice. Hook must be the exact first line. Paragraphs separated by blank lines. No hashtags in caption.",
-    "hashtags": "String of 9 hashtags — 3 broad reach, 3 mid-range, 3 niche SE tags. Format: #tag1 #tag2 etc"
-  }},
-  "tiktok": {{
-    "hook": "The exact hook line adapted for spoken word — under 8 words, punchy",
-    "script": "45-60 second spoken script. Written how Gen actually talks. Natural pauses with ellipses. Ends with a bold statement or question, never a CTA."
-  }},
-  "facebook": {{
-    "post": "Hook line + longer conversational version. More personal. Ends with a question that invites real responses, not just likes."
-  }},
-  "story": {{
-    "text": "Pull quote or bold statement — max 10 words for graphic overlay",
-    "visual_note": "One line describing the image mood for this specific post"
-  }},
-  "image_prompt_addition": "2-3 specific visual elements to add to the standard dark academia prompt for this post's theme"
-}}"""
-
-WEEKLY_PROMPT = """Today is {today} (Sunday). Weekly content batch.
-
-SKY EVENTS (next 14 days — use ONLY these, do not invent transits):
-{sky_events}
-
-SIGN TIP THIS WEEK: {sign_placement} in {sign}
-HOOKS THIS WEEK: {hooks}
-
-Generate the full weekly batch. Return ONLY valid JSON, no preamble or markdown fences:
-
-{{
-  "weekly_overview": {{
-    "subject": "What this week is about in one line",
-    "event_name": "Main event for image",
-    "instagram": {{
-      "caption": "Hook + 3-4 paragraphs. What is the collective weather this week. Names key events, what they mean, what people might feel. Gen voice.",
-      "hashtags": "9 hashtags — 3 broad, 3 mid, 3 niche"
-    }},
-    "facebook": {{
-      "post": "Longer personal version. Ends with engagement question."
-    }}
-  }},
-  "transit_spotlight": {{
-    "subject": "Most significant transit this week",
-    "date": "When it happens",
-    "event_name": "Transit name for image",
-    "pull_quote": "Most shareable line — max 12 words",
-    "instagram": {{
-      "caption": "Hook + 3-4 paragraphs. Deep dive. Plain explanation, real life meaning, speaks directly to reader.",
-      "hashtags": "9 hashtags — 3 broad, 3 mid, 3 niche"
-    }},
-    "tiktok": {{
-      "hook": "Spoken hook under 8 words",
-      "script": "45-60 second spoken script in Gen voice"
-    }},
-    "facebook": {{
-      "post": "Conversational version with engagement question"
-    }},
-    "story": {{
-      "text": "One line max 10 words",
-      "visual_note": "Image mood for this post"
-    }}
-  }},
-  "sign_tip": {{
-    "placement": "{sign_placement}",
-    "sign": "{sign}",
-    "instagram": {{
-      "caption": "Hook + 3 paragraphs about this placement. Practical and specific. Connects to current sky.",
-      "hashtags": "9 hashtags"
-    }},
-    "story": {{
-      "text": "One punchy line for this placement, max 10 words"
-    }}
-  }},
-  "journal_prompt": {{
-    "transit_connection": "Which event this connects to",
-    "instagram": {{
-      "caption": "Hook + 3 paragraphs. Real reflective question tied to the sky. Not therapy-speak.",
-      "hashtags": "9 hashtags"
-    }},
-    "story": {{
-      "text": "The question distilled to one line"
-    }}
-  }},
-  "tarot_tie": {{
-    "instagram": {{
-      "caption": "Hook + 3 paragraphs connecting sky to tarot. Which card fits. What it is asking right now.",
-      "hashtags": "9 hashtags"
-    }}
-  }}
-}}"""
-
-SIGN_PLACEMENTS = ["sun", "moon", "rising", "venus"]
-SIGNS = ["Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-         "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"]
-
-def call_llm(system, user_prompt):
-    if not OPENROUTER_KEY:
-        return None
+def call_llm(system, user_prompt, max_tokens=3000):
     payload = json.dumps({
         "model": "anthropic/claude-sonnet-4-6",
-        "max_tokens": 4000,
+        "max_tokens": max_tokens,
         "messages": [{"role": "user", "content": user_prompt}]
     }).encode("utf-8")
     req = urllib.request.Request(
         "https://openrouter.ai/api/v1/chat/completions",
         data=payload,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {OPENROUTER_KEY}"
-        },
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {OPENROUTER_KEY}"},
         method="POST"
     )
-    with urllib.request.urlopen(req, timeout=60) as resp:
+    with urllib.request.urlopen(req, timeout=45) as resp:
         data = json.loads(resp.read().decode("utf-8"))
         return data["choices"][0]["message"]["content"]
 
@@ -424,18 +310,95 @@ def parse_json(raw):
         clean = clean.split("\n", 1)[1].rsplit("```", 1)[0].strip()
     return json.loads(clean)
 
-def format_daily(data, today_str):
+DAILY_PROMPT = """Today is {today}.
+
+SKY EVENTS (next 14 days — use ONLY these, do not invent transits):
+{sky_events}
+
+HOOK TO USE as the exact first line of every platform caption:
+{hook}
+
+PRIORITY: Write about the most significant event today or in the next 3 days.
+If nothing major, write educational or evergreen astrology content.
+
+Return ONLY valid JSON, no preamble or markdown fences:
+
+{{
+  "post_type": "major_event or upcoming_event or educational",
+  "subject": "One line — what this post is about",
+  "event_name": "Short astrological event name for the graphic header (max 4 words, e.g. Venus in Leo)",
+  "pull_quote": "The single most shareable line from the post — max 12 words, no punctuation at end",
+  "instagram": {{
+    "caption": "Hook line + 3-4 paragraphs in Gen voice. Hook is the exact first line. Blank line between paragraphs. No hashtags.",
+    "hashtags": "9 hashtags — 3 broad, 3 mid-range, 3 niche SE"
+  }},
+  "tiktok": {{
+    "hook": "Spoken hook — under 8 words, punchy",
+    "script": "45-60 second spoken script in Gen voice. Ends with bold statement or question, not a CTA."
+  }},
+  "facebook": {{
+    "post": "Hook line + longer conversational version. Ends with question inviting real responses."
+  }},
+  "story": {{
+    "text": "Pull quote or bold statement — max 10 words for graphic overlay",
+    "visual_note": "One line on image mood"
+  }}
+}}"""
+
+WEEKLY_PROMPT = """Today is {today} (Sunday). Weekly content batch.
+
+SKY EVENTS (next 14 days — use ONLY these):
+{sky_events}
+
+SIGN TIP: {sign_placement} in {sign}
+HOOKS: {hooks}
+
+Return ONLY valid JSON, no preamble or markdown fences:
+
+{{
+  "weekly_overview": {{
+    "event_name": "Main event name for graphic",
+    "pull_quote": "Most shareable line — max 12 words",
+    "instagram": {{"caption": "Hook + 3-4 paragraphs. Collective weather this week.", "hashtags": "9 hashtags"}},
+    "facebook": {{"post": "Longer personal version. Ends with engagement question."}}
+  }},
+  "transit_spotlight": {{
+    "subject": "Most significant transit this week",
+    "date": "When it happens",
+    "event_name": "Transit name for graphic",
+    "pull_quote": "Most shareable line — max 12 words",
+    "instagram": {{"caption": "Hook + 3-4 paragraphs deep dive.", "hashtags": "9 hashtags"}},
+    "tiktok": {{"hook": "Spoken hook under 8 words", "script": "45-60 second script"}},
+    "facebook": {{"post": "Conversational version with engagement question"}},
+    "story": {{"text": "One line max 10 words", "visual_note": "Image mood"}}
+  }},
+  "sign_tip": {{
+    "placement": "{sign_placement}", "sign": "{sign}",
+    "instagram": {{"caption": "Hook + 3 paragraphs about this placement.", "hashtags": "9 hashtags"}},
+    "story": {{"text": "One punchy line max 10 words"}}
+  }},
+  "journal_prompt": {{
+    "transit_connection": "Which event this connects to",
+    "instagram": {{"caption": "Hook + 3 paragraphs. Real reflective question.", "hashtags": "9 hashtags"}},
+    "story": {{"text": "The question in one line"}}
+  }},
+  "tarot_tie": {{
+    "instagram": {{"caption": "Hook + 3 paragraphs connecting sky to tarot.", "hashtags": "9 hashtags"}}
+  }}
+}}"""
+
+def format_daily(data, today_str, graphic_b64):
     ig = data.get("instagram", {})
     tk = data.get("tiktok", {})
     fb = data.get("facebook", {})
     st = data.get("story", {})
-    image_url = data.get("image_url", "")
 
-    out = f"""SOULFUL EXISTENCE — DAILY POST
-{today_str}
-Subject: {data.get("subject", "")}
+    graphic_note = ""
+    if graphic_b64:
+        graphic_note = f"\n[GRAPHIC ATTACHED — {data.get('event_name', '')} — {data.get('pull_quote', '')}]"
 
-{"IMAGE: " + image_url if image_url else ""}
+    return f"""SOULFUL EXISTENCE — DAILY POST
+{today_str} | {data.get("subject", "")}{graphic_note}
 
 ==================================================
 INSTAGRAM
@@ -449,7 +412,6 @@ TIKTOK
 ==================================================
 Hook: {tk.get("hook", "")}
 
-Script:
 {tk.get("script", "")}
 
 ==================================================
@@ -462,37 +424,6 @@ STORY
 ==================================================
 "{st.get("text", "")}"
 Visual: {st.get("visual_note", "")}"""
-    return out
-
-def format_weekly(data, today_str, sign_placement, sign):
-    sections = []
-    sections.append(f"SOULFUL EXISTENCE — WEEKLY BATCH\n{today_str}\n")
-
-    wo = data.get("weekly_overview", {})
-    wo_ig = wo.get("instagram", {})
-    sections.append(f"==================================================\nWEEKLY OVERVIEW\n==================================================\n{wo_ig.get('caption', '')}\n\n{wo_ig.get('hashtags', '')}\n\nFACEBOOK:\n{wo.get('facebook', {}).get('post', '')}")
-
-    ts = data.get("transit_spotlight", {})
-    ts_ig = ts.get("instagram", {})
-    ts_tk = ts.get("tiktok", {})
-    ts_fb = ts.get("facebook", {})
-    ts_st = ts.get("story", {})
-    image_url = ts.get("image_url", "")
-    sections.append(f"==================================================\nTRANSIT SPOTLIGHT: {ts.get('subject', '')} ({ts.get('date', '')})\n==================================================\n{'IMAGE: ' + image_url if image_url else ''}\n\nINSTAGRAM:\n{ts_ig.get('caption', '')}\n{ts_ig.get('hashtags', '')}\n\nTIKTOK:\nHook: {ts_tk.get('hook', '')}\nScript: {ts_tk.get('script', '')}\n\nFACEBOOK:\n{ts_fb.get('post', '')}\n\nSTORY: \"{ts_st.get('text', '')}\"\nVisual: {ts_st.get('visual_note', '')}")
-
-    st = data.get("sign_tip", {})
-    st_ig = st.get("instagram", {})
-    sections.append(f"==================================================\nSIGN TIP: {sign_placement.upper()} IN {sign.upper()}\n==================================================\n{st_ig.get('caption', '')}\n{st_ig.get('hashtags', '')}\n\nSTORY: \"{st.get('story', {}).get('text', '')}\"")
-
-    jp = data.get("journal_prompt", {})
-    jp_ig = jp.get("instagram", {})
-    sections.append(f"==================================================\nJOURNAL PROMPT (re: {jp.get('transit_connection', '')})\n==================================================\n{jp_ig.get('caption', '')}\n{jp_ig.get('hashtags', '')}\n\nSTORY: \"{jp.get('story', {}).get('text', '')}\"")
-
-    tt = data.get("tarot_tie", {})
-    tt_ig = tt.get("instagram", {})
-    sections.append(f"==================================================\nTAROT TIE-IN\n==================================================\n{tt_ig.get('caption', '')}\n{tt_ig.get('hashtags', '')}")
-
-    return "\n\n".join(sections)
 
 def handle_daily(params, ctx=None, **kwargs):
     try:
@@ -502,14 +433,13 @@ def handle_daily(params, ctx=None, **kwargs):
         today_str = today.strftime("%B %d, %Y")
 
         sky_data = fetch_sky_events(start_date, end_date)
-        sky_events = sky_data.get("events", sky_data)
+        sky_events = sky_data.get("events", sky_data)[:20]
 
-        hook_category = random.choice(["transit_and_sky", "personal", "direct", "educational"])
-        hook = get_hook(hook_category)
+        hook = get_hook(random.choice(["transit_and_sky", "personal", "direct", "educational"]))
 
         user_prompt = DAILY_PROMPT.format(
             today=today_str,
-            sky_events=json.dumps(sky_events[:20], indent=2),
+            sky_events=json.dumps(sky_events, indent=2),
             hook=hook
         )
 
@@ -518,20 +448,25 @@ def handle_daily(params, ctx=None, **kwargs):
             raw = result.content if hasattr(result, "content") else str(result)
         else:
             raw = call_llm(SE_VOICE, user_prompt)
-            if not raw:
-                return "LLM unavailable."
 
         data = parse_json(raw)
 
-        image_url = generate_image(
-            data.get("subject", "astrological energy"),
-            data.get("event_name", "astrology"),
-            data.get("pull_quote", "")
+        # Generate branded graphic
+        graphic_b64 = generate_graphic(
+            event_name=data.get("event_name", "Astrology"),
+            pull_quote=data.get("pull_quote", ""),
+            post_date=today_str
         )
-        if image_url:
-            data["image_url"] = image_url
 
-        return format_daily(data, today_str)
+        # Send graphic as image if context supports it
+        if graphic_b64 and ctx and hasattr(ctx, "send_image"):
+            try:
+                img_bytes = base64.b64decode(graphic_b64)
+                ctx.send_image(img_bytes, filename=f"SE_{today.strftime('%Y%m%d')}.png")
+            except Exception:
+                pass
+
+        return format_daily(data, today_str, graphic_b64)
 
     except Exception as e:
         return f"Something went wrong: {e}"
@@ -547,19 +482,13 @@ def handle_weekly(params, ctx=None, **kwargs):
         sign = random.choice(SIGNS)
 
         sky_data = fetch_sky_events(start_date, end_date)
-        sky_events = sky_data.get("events", sky_data)
+        sky_events = sky_data.get("events", sky_data)[:20]
 
-        hooks = {
-            "weekly_overview": get_hook("transit_and_sky"),
-            "transit_spotlight": get_hook("direct"),
-            "sign_tip": get_hook("sign_placement"),
-            "journal_prompt": get_hook("engagement"),
-            "tarot_tie": get_hook("tarot")
-        }
+        hooks = {k: get_hook(k) for k in ["transit_and_sky", "direct", "sign_placement", "engagement", "tarot"]}
 
         user_prompt = WEEKLY_PROMPT.format(
             today=today_str,
-            sky_events=json.dumps(sky_events[:20], indent=2),
+            sky_events=json.dumps(sky_events, indent=2),
             sign_placement=sign_placement,
             sign=sign,
             hooks=json.dumps(hooks, indent=2)
@@ -570,21 +499,85 @@ def handle_weekly(params, ctx=None, **kwargs):
             raw = result.content if hasattr(result, "content") else str(result)
         else:
             raw = call_llm(SE_VOICE, user_prompt)
-            if not raw:
-                return "LLM unavailable."
 
         data = parse_json(raw)
 
+        # Generate graphic for transit spotlight
         ts = data.get("transit_spotlight", {})
-        image_url = generate_image(
-            ts.get("subject", "weekly astrology"),
-            ts.get("event_name", "astrology"),
-            ts.get("pull_quote", "")
+        graphic_b64 = generate_graphic(
+            event_name=ts.get("event_name", "Weekly Astrology"),
+            pull_quote=ts.get("pull_quote", ""),
+            post_date=today_str
         )
-        if image_url:
-            data["transit_spotlight"]["image_url"] = image_url
 
-        return format_weekly(data, today_str, sign_placement, sign)
+        if graphic_b64 and ctx and hasattr(ctx, "send_image"):
+            try:
+                img_bytes = base64.b64decode(graphic_b64)
+                ctx.send_image(img_bytes, filename=f"SE_Weekly_{today.strftime('%Y%m%d')}.png")
+            except Exception:
+                pass
+
+        # Format output
+        wo = data.get("weekly_overview", {})
+        ts_data = data.get("transit_spotlight", {})
+        st = data.get("sign_tip", {})
+        jp = data.get("journal_prompt", {})
+        tt = data.get("tarot_tie", {})
+
+        out = f"""SOULFUL EXISTENCE — WEEKLY BATCH
+{today_str}
+{"[GRAPHIC: " + ts_data.get("event_name", "") + " — " + ts_data.get("pull_quote", "") + "]" if graphic_b64 else ""}
+
+==================================================
+WEEKLY OVERVIEW — INSTAGRAM
+==================================================
+{wo.get("instagram", {}).get("caption", "")}
+
+{wo.get("instagram", {}).get("hashtags", "")}
+
+FACEBOOK:
+{wo.get("facebook", {}).get("post", "")}
+
+==================================================
+TRANSIT SPOTLIGHT: {ts_data.get("subject", "")} ({ts_data.get("date", "")})
+==================================================
+INSTAGRAM:
+{ts_data.get("instagram", {}).get("caption", "")}
+{ts_data.get("instagram", {}).get("hashtags", "")}
+
+TIKTOK:
+Hook: {ts_data.get("tiktok", {}).get("hook", "")}
+{ts_data.get("tiktok", {}).get("script", "")}
+
+FACEBOOK:
+{ts_data.get("facebook", {}).get("post", "")}
+
+STORY: "{ts_data.get("story", {}).get("text", "")}"
+Visual: {ts_data.get("story", {}).get("visual_note", "")}
+
+==================================================
+SIGN TIP: {sign_placement.upper()} IN {sign.upper()}
+==================================================
+{st.get("instagram", {}).get("caption", "")}
+{st.get("instagram", {}).get("hashtags", "")}
+
+STORY: "{st.get("story", {}).get("text", "")}"
+
+==================================================
+JOURNAL PROMPT (re: {jp.get("transit_connection", "")})
+==================================================
+{jp.get("instagram", {}).get("caption", "")}
+{jp.get("instagram", {}).get("hashtags", "")}
+
+STORY: "{jp.get("story", {}).get("text", "")}"
+
+==================================================
+TAROT TIE-IN
+==================================================
+{tt.get("instagram", {}).get("caption", "")}
+{tt.get("instagram", {}).get("hashtags", "")}"""
+
+        return out
 
     except Exception as e:
         return f"Something went wrong: {e}"
@@ -595,11 +588,11 @@ def register(ctx):
         toolset="se_astro_content",
         schema={
             "name": "se_daily_post",
-            "description": "Generate today's Soulful Existence daily astrology social media post with social-optimized hook, platform-specific content for IG/TikTok/FB/Story, tiered hashtags, and a dark academia AI image.",
+            "description": "Generate today's Soulful Existence daily astrology social media post with branded graphic, social-optimized hook, IG/TikTok/FB/Story content, and tiered hashtags.",
             "parameters": {"type": "object", "properties": {}, "required": []}
         },
         handler=handle_daily,
-        description="Generate SE daily post."
+        description="Generate SE daily post with graphic."
     )
 
     ctx.register_tool(
@@ -607,11 +600,11 @@ def register(ctx):
         toolset="se_astro_content",
         schema={
             "name": "se_weekly_batch",
-            "description": "Generate the full Soulful Existence weekly content batch for Sunday scheduling. Weekly overview, transit spotlight, sign tip, journal prompt, tarot tie-in — all platforms, all optimized.",
+            "description": "Generate the full Soulful Existence weekly content batch with branded graphic. Weekly overview, transit spotlight, sign tip, journal prompt, tarot tie-in.",
             "parameters": {"type": "object", "properties": {}, "required": []}
         },
         handler=handle_weekly,
-        description="Generate SE weekly batch."
+        description="Generate SE weekly batch with graphic."
     )
 
     if hasattr(ctx, "schedule"):
@@ -620,12 +613,12 @@ def register(ctx):
             cron="0 9 * * *",
             tool="se_daily_post",
             params={},
-            message="[SILENT] Run se_daily_post and send the full output to this chat."
+            message="[SILENT] Run se_daily_post and send the full output including any images to this chat."
         )
         ctx.schedule(
             name="se_weekly_astro",
             cron="0 10 * * 0",
             tool="se_weekly_batch",
             params={},
-            message="[SILENT] Run se_weekly_batch and send the full output to this chat."
+            message="[SILENT] Run se_weekly_batch and send the full output including any images to this chat."
         )

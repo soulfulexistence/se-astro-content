@@ -1,7 +1,7 @@
 name: se-astro-content
-version: "4.0"
-description: Generates daily and weekly Soulful Existence social media content with social-optimized hooks, platform-specific formatting, and AI-generated dark academia images. Daily at 5am Eastern, weekly batch on Sundays.
+version: "5.0"
+description: Generates daily and weekly Soulful Existence social media content with branded Pillow graphics. Daily at 5am Eastern, weekly batch on Sundays.
 requires_env:
-  - KERYKEION_API_URL
-  - COSMIC_API_KEY
+  - KERYKION_API_URL
+  - KERYKION_API_KEY
   - OPENROUTER_API_KEY
